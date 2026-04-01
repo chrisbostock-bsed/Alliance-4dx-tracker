@@ -1,0 +1,217 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ── Org Layer ──────────────────────────────────────────────────────────────
+
+model School {
+  id        String  @id @default(cuid())
+  name      String
+  shortName String
+  location  String?
+  gradeSpan String?
+  isActive  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  wigs        WIG[]
+  wigSessions WigSession[]
+  teams       Team[]
+
+  @@map("schools")
+}
+
+model Team {
+  id       String @id @default(cuid())
+  name     String
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  wigs WIG[]
+
+  @@map("teams")
+}
+
+// ── Discipline 1: WIGs ─────────────────────────────────────────────────────
+
+model WIG {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  category    WigCategory
+  status      WigStatus   @default(ACTIVE)
+
+  baselineValue Float
+  targetValue   Float
+  currentValue  Float    @default(0)
+  unit          String
+  targetDate    DateTime
+
+  schoolId String
+  school   School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teamId   String?
+  team     Team?   @relation(fields: [teamId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  leadMeasures LeadMeasure[]
+  lagMeasures  LagMeasure[]
+  wigSessions  WigSession[]
+
+  @@map("wigs")
+}
+
+enum WigCategory {
+  ACADEMIC
+  ATTENDANCE
+  TEACHER
+  OPERATIONAL
+}
+
+enum WigStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+  ARCHIVED
+}
+
+// ── Discipline 2: Lead Measures ────────────────────────────────────────────
+
+model LeadMeasure {
+  id          String @id @default(cuid())
+  title       String
+  description String?
+  wigId       String
+  wig         WIG    @relation(fields: [wigId], references: [id], onDelete: Cascade)
+
+  targetValue    Float
+  unit           String
+  trackingPeriod TrackingPeriod
+  isActive       Boolean        @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries LeadMeasureEntry[]
+
+  @@map("lead_measures")
+}
+
+model LeadMeasureEntry {
+  id            String      @id @default(cuid())
+  leadMeasureId String
+  leadMeasure   LeadMeasure @relation(fields: [leadMeasureId], references: [id], onDelete: Cascade)
+
+  value      Float
+  notes      String?
+  recordedAt DateTime @default(now())
+
+  @@map("lead_measure_entries")
+}
+
+// ── Lag Measures ───────────────────────────────────────────────────────────
+
+model LagMeasure {
+  id    String @id @default(cuid())
+  title String
+  wigId String
+  wig   WIG    @relation(fields: [wigId], references: [id], onDelete: Cascade)
+
+  targetValue    Float
+  unit           String
+  trackingPeriod TrackingPeriod
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries LagMeasureEntry[]
+
+  @@map("lag_measures")
+}
+
+model LagMeasureEntry {
+  id           String     @id @default(cuid())
+  lagMeasureId String
+  lagMeasure   LagMeasure @relation(fields: [lagMeasureId], references: [id], onDelete: Cascade)
+
+  value      Float
+  notes      String?
+  recordedAt DateTime @default(now())
+  source     String?
+
+  @@map("lag_measure_entries")
+}
+
+enum TrackingPeriod {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
+// ── Discipline 4: WIG Sessions ─────────────────────────────────────────────
+
+model WigSession {
+  id          String        @id @default(cuid())
+  title       String?
+  scheduledAt DateTime
+  conductedAt DateTime?
+  status      SessionStatus @default(SCHEDULED)
+  notes       String?
+
+  wigId    String
+  wig      WIG    @relation(fields: [wigId], references: [id], onDelete: Cascade)
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  commitments Commitment[]
+
+  @@map("wig_sessions")
+}
+
+enum SessionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Commitment {
+  id          String           @id @default(cuid())
+  description String
+  ownerName   String
+  status      CommitmentStatus @default(PENDING)
+
+  sessionId            String
+  session              WigSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  previousCommitmentId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("commitments")
+}
+
+enum CommitmentStatus {
+  PENDING
+  KEPT
+  MODIFIED
+  NOT_DONE
+}
