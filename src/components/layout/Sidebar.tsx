@@ -11,6 +11,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserMenu } from "./UserMenu";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -20,7 +21,15 @@ const navItems = [
   { href: "/schools", label: "Schools", icon: School },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
+}
+
+export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -61,17 +70,21 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="px-6 py-4 border-t border-white/10">
-        <p className="text-xs text-blue-300 leading-relaxed">
-          Four Disciplines of<br />Execution
-        </p>
-        <div className="mt-2 space-y-1">
+      {/* Footer: 4DX principles */}
+      <div className="px-6 py-3 border-t border-white/10">
+        <div className="space-y-0.5">
           {["1. Focus on WIGs", "2. Lead Measures", "3. Scoreboard", "4. Accountability"].map((d) => (
             <p key={d} className="text-xs text-blue-400">{d}</p>
           ))}
         </div>
       </div>
+
+      {/* User menu */}
+      {user && (
+        <div className="px-3 pb-3 border-t border-white/10 pt-3">
+          <UserMenu name={user.name} email={user.email} image={user.image} />
+        </div>
+      )}
     </aside>
   );
 }
